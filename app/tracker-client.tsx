@@ -679,12 +679,12 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
         </details>
       </section>
 
-      <section className="mx-auto max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+<section className="mx-auto max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 
       {/* Search */}
-      <div className="flex-1">
+      <div className="w-full xl:w-[30%] py-1">
         <label className="relative block">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -704,7 +704,7 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-1 items-center justify-end gap-3">
 
         <Select
           className="w-40"
