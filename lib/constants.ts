@@ -35,6 +35,14 @@ export const HELP_NEEDED: HelpNeeded[] = [
   "Shobhit sir",
 ];
 
+export const PROJECT_PHASES: ProjectPhase[] = [
+  "Development",
+  "Bug Fix",
+  "Maintenance",
+  "Planning",
+  "Design",
+];
+
 export const ACTION_STATUSES: ActionStatus[] = [
   "Open",
   "In Progress",
@@ -43,10 +51,26 @@ export const ACTION_STATUSES: ActionStatus[] = [
 ];
 
 export const PRIORITY_META = {
-  Urgent: { icon: "Flame", label: "Urgent", meaning: "Client, release, or production impacted; act now." },
-  High: { icon: "TriangleAlert", label: "High", meaning: "Important and time-sensitive; may become a blocker." },
-  Medium: { icon: "Hourglass", label: "Medium", meaning: "Important work to plan into a sprint." },
-  Low: { icon: "Circle", label: "Low", meaning: "Handle when capacity allows." },
+  Urgent: {
+    icon: "Flame",
+    label: "Urgent",
+    meaning: "Client, release, or production impacted; act now.",
+  },
+  High: {
+    icon: "TriangleAlert",
+    label: "High",
+    meaning: "Important and time-sensitive; may become a blocker.",
+  },
+  Medium: {
+    icon: "Hourglass",
+    label: "Medium",
+    meaning: "Important work to plan into a sprint.",
+  },
+  Low: {
+    icon: "Circle",
+    label: "Low",
+    meaning: "Handle when capacity allows.",
+  },
 } as const;
 
 export const SIZE_META = {
@@ -61,6 +85,9 @@ export const SIZE_META = {
 export const RAG_META = {
   Green: { dot: "bg-emerald-500", meaning: "On track." },
   Yellow: { dot: "bg-amber-400", meaning: "At risk or needs monitoring." },
-  Red: { dot: "bg-rose-500", meaning: "Blocked, overdue, or escalation needed." },
+  Red: {
+    dot: "bg-rose-500",
+    meaning: "Blocked, overdue, or escalation needed.",
+  },
   Watch: { dot: "bg-sky-500", meaning: "Potential future risk." },
 } as const;

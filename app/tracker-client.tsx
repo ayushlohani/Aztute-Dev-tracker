@@ -144,6 +144,7 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
   const [toast, setToast] = useState("");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const enriched = useMemo(() => projects.map(enrichProject), [projects]);
   const clients = useMemo(
@@ -235,7 +236,9 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
       applyPayload(payload, selectedId);
       setToast(success);
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Something went wrong.");
+      const message = error instanceof Error ? error.message : "Something went wrong.";
+      setToast(message);
+      setErrorModal(message);
     } finally {
       setBusy("");
     }
@@ -259,7 +262,9 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
       setIsDetailOpen(true);
       setToast("Project created.");
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Could not create project.");
+      const message = error instanceof Error ? error.message : "Could not create project.";
+      setToast(message);
+      setErrorModal(message);
     } finally {
       setBusy("");
     }
@@ -272,8 +277,13 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
     const history = [...(nextProject.history || [])];
 
     if (original) {
-      for (const key of Object.keys(nextProject) as Array<keyof Project>) {
-        if (["history", "actions", "lastUpdated"].includes(key)) continue;
+      const excluded = ["history", "actions", "lastUpdated"];
+      for (const rawKey of Object.keys(nextProject)) {
+        const key = rawKey as keyof Project;
+        if (excluded.includes(key)) continue;
+        // Only consider canonical project fields (those with a friendly label).
+        // This avoids logging derived/enriched fields such as attentionScore, daysSlipped, etc.
+        if (fieldLabel(key) === key) continue;
         if (String(original[key] ?? "") !== String(nextProject[key] ?? "")) {
           history.unshift({
             at: nowISO(),
@@ -297,7 +307,7 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
           method: "PUT",
           body: JSON.stringify(nextProject),
         }),
-      "Changes saved.",
+      "Changes updated successfully.",
     );
   }
 
@@ -526,6 +536,7 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
               <button className="btn-secondary" onClick={() => setIsExportDialogOpen(true)} disabled={Boolean(busy)}>
                 <Download size={16} /> Excel
               </button>
+              {/* header refresh removed - refreshed via filter row button */}
               <button className="btn-secondary" onClick={exportJson}>
                 <FileJson size={16} /> Backup
               </button>
@@ -628,6 +639,32 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
         ))}
       </section>
 
+      {errorModal ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setErrorModal(null);
+          }}
+        >
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Error</h2>
+              <button aria-label="Dismiss error" onClick={() => setErrorModal(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-slate-700">{errorModal}</p>
+            <div className="mt-6 text-right">
+              <button className="btn-primary" onClick={() => setErrorModal(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8">
         <details className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-800">
@@ -641,29 +678,105 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
         </details>
       </section>
 
-      <section className="mx-auto grid max-w-[1800px] grid-cols-1 gap-3 px-4 py-4 sm:px-6 xl:grid-cols-[1.4fr_repeat(5,minmax(130px,0.55fr))_auto] lg:px-8">
-        <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-3 text-slate-400" size={17} />
+      <section className="mx-auto max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+      {/* Search */}
+      <div className="flex-1">
+        <label className="relative block">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
           <input
-            className="input pl-10"
+            type="search"
+            className="input w-full pl-10"
+            placeholder="Search projects, owners, bottlenecks, actions..."
             value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
+            onChange={(e) => {
+              setQuery(e.target.value);
               setKpiMode("");
             }}
-            placeholder="Search projects, owners, bottlenecks, actions, notes..."
-            type="search"
           />
         </label>
-        <Select value={filters.projectClass} options={["", ...PROJECT_CLASSES]} onChange={(value) => setFilters({ ...filters, projectClass: value })} />
-        <Select value={filters.clientCode} options={["", ...clients]} onChange={(value) => setFilters({ ...filters, clientCode: value })} />
-        <Select value={filters.priority} options={["", ...PRIORITIES]} onChange={(value) => setFilters({ ...filters, priority: value })} />
-        <Select value={filters.rag} options={["", ...RAGS]} onChange={(value) => setFilters({ ...filters, rag: value })} />
-        <Select value={filters.workBy} options={["", ...WORK_SOURCES]} onChange={(value) => setFilters({ ...filters, workBy: value })} />
-        <button className="btn-secondary justify-center" onClick={clearFilters}>
-          <X size={16} /> Clear
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+
+        <Select
+          className="w-40"
+          value={filters.projectClass}
+          options={["", ...PROJECT_CLASSES]}
+          onChange={(v) =>
+            setFilters({ ...filters, projectClass: v })
+          }
+        />
+
+        <Select
+          className="w-36"
+          value={filters.clientCode}
+          options={["", ...clients]}
+          onChange={(v) =>
+            setFilters({ ...filters, clientCode: v })
+          }
+        />
+
+        <Select
+          className="w-32"
+          value={filters.priority}
+          options={["", ...PRIORITIES]}
+          onChange={(v) =>
+            setFilters({ ...filters, priority: v })
+          }
+        />
+
+        <Select
+          className="w-28"
+          value={filters.rag}
+          options={["", ...RAGS]}
+          onChange={(v) =>
+            setFilters({ ...filters, rag: v })
+          }
+        />
+
+        <Select
+          className="w-40"
+          value={filters.workBy}
+          options={["", ...WORK_SOURCES]}
+          onChange={(v) =>
+            setFilters({ ...filters, workBy: v })
+          }
+        />
+
+        <button
+          className="btn-danger whitespace-nowrap"
+          onClick={clearFilters}
+        >
+          <X size={16} />
+          Clear
         </button>
-      </section>
+
+        <button
+          className="btn-primary whitespace-nowrap"
+          disabled={Boolean(busy)}
+          onClick={() =>
+            void run(
+              "refresh",
+              () => sendRequest("/api/projects"),
+              "Projects refreshed."
+            )
+          }
+        >
+          <RefreshCcw size={16} />
+        </button>
+
+      </div>
+
+    </div>
+  </div>
+</section>
 
       <section className="mx-auto max-w-[1800px] px-4 pb-6 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -984,14 +1097,21 @@ function Select({
   options,
   onChange,
   name,
+  className,
 }: {
   value: string;
   options: string[];
   onChange?: (value: string) => void;
   name?: string;
+  className?: string;
 }) {
   return (
-    <select className="input" name={name} value={value} onChange={(event) => onChange?.(event.target.value)}>
+    <select
+      className={classNames("input", className)}
+      name={name}
+      value={value}
+      onChange={(event) => onChange?.(event.target.value)}
+    >
       {options.map((option) => (
         <option key={option || "all"} value={option}>
           {option || "All"}

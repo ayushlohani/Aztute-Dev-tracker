@@ -14,6 +14,12 @@ export type HelpNeeded =
   | "None"
   | "Shobhit sir";
 
+export type ProjectPhase =
+  | "Development"
+  | "Bug Fix"
+  | "Maintenance"
+  | "Planning"
+  | "Design";
 export type ActionStatus = "Open" | "In Progress" | "Done" | "Deferred";
 export type HistoryType =
   | "Imported"
@@ -61,6 +67,7 @@ export type Project = {
   helpNeeded: HelpNeeded;
   owner: string;
   targetDate: string;
+  phase: ProjectPhase;
   lastUpdated: string;
   deliverable: string;
   bottleneck: string;

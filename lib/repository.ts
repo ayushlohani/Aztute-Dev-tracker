@@ -2,9 +2,14 @@ import "server-only";
 
 import { MongoClient, type Collection } from "mongodb";
 import { seedProjects } from "./seed-projects";
+import { normalizeProject } from "./validation";
 import type { Project, TrackerPayload } from "./types";
 
-type StoredProject = Project & { _id?: string; createdAt?: string; updatedAt?: string };
+type StoredProject = Project & {
+  _id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 const dbName = process.env.MONGODB_DB || "DevTracker";
 const collectionName = process.env.MONGODB_COLLECTION || "DevTracker";
@@ -26,7 +31,8 @@ function cloneProjects(projects: Project[]) {
 
 function ensureMemory() {
   if (!memoryStore.__aztuteProjects) {
-    memoryStore.__aztuteProjects = cloneProjects(seedProjects);
+    memoryStore.__aztuteProjects =
+      cloneProjects(seedProjects).map(normalizeProject);
   }
   return memoryStore.__aztuteProjects;
 }
@@ -43,7 +49,9 @@ async function getCollection(): Promise<Collection<StoredProject> | null> {
     }
 
     const client = await memoryStore.__aztuteMongoClient;
-    const collection = client.db(dbName).collection<StoredProject>(collectionName);
+    const collection = client
+      .db(dbName)
+      .collection<StoredProject>(collectionName);
     await collection.createIndex({ id: 1 }, { unique: true });
     return collection;
   } catch (error) {
@@ -58,12 +66,15 @@ async function seedMongoIfEmpty(collection: Collection<StoredProject>) {
   if (count > 0) return;
   const timestamp = new Date().toISOString();
   await collection.insertMany(
-    cloneProjects(seedProjects).map((project) => ({
-      ...project,
-      _id: project.id,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })),
+    cloneProjects(seedProjects).map((project) => {
+      const normalized = normalizeProject(project);
+      return {
+        ...normalized,
+        _id: normalized.id,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+    }),
   );
 }
 
@@ -82,8 +93,16 @@ export async function listProjects(): Promise<TrackerPayload> {
   }
 
   await seedMongoIfEmpty(collection);
-  const projects = await collection.find({}).sort({ projectNumber: 1 }).toArray();
-  return { projects: projects.map(stripMongoFields), persistence: "mongodb" };
+  const projects = await collection
+    .find({})
+    .sort({ projectNumber: 1 })
+    .toArray();
+  return {
+    projects: projects.map((project) =>
+      normalizeProject(stripMongoFields(project)),
+    ),
+    persistence: "mongodb",
+  };
 }
 
 export async function createProject(project: Project): Promise<TrackerPayload> {
@@ -103,7 +122,10 @@ export async function createProject(project: Project): Promise<TrackerPayload> {
   return listProjects();
 }
 
-export async function updateProject(id: string, project: Project): Promise<TrackerPayload> {
+export async function updateProject(
+  id: string,
+  project: Project,
+): Promise<TrackerPayload> {
   const collection = await getCollection();
   if (!collection) {
     const projects = ensureMemory();
@@ -124,7 +146,9 @@ export async function updateProject(id: string, project: Project): Promise<Track
 export async function deleteProject(id: string): Promise<TrackerPayload> {
   const collection = await getCollection();
   if (!collection) {
-    memoryStore.__aztuteProjects = ensureMemory().filter((project) => project.id !== id);
+    memoryStore.__aztuteProjects = ensureMemory().filter(
+      (project) => project.id !== id,
+    );
     return listProjects();
   }
 
@@ -132,7 +156,9 @@ export async function deleteProject(id: string): Promise<TrackerPayload> {
   return listProjects();
 }
 
-export async function replaceProjects(projects: Project[]): Promise<TrackerPayload> {
+export async function replaceProjects(
+  projects: Project[],
+): Promise<TrackerPayload> {
   const cleanProjects = cloneProjects(projects);
   const collection = await getCollection();
   if (!collection) {
