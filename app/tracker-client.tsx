@@ -87,6 +87,7 @@ function createBlankProject(): Project {
     blocker: false,
     helpNeeded: "None",
     owner: "N/A",
+    phase: "Development",
     targetDate: "",
     lastUpdated: todayISO(),
     deliverable: "",

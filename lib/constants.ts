@@ -3,6 +3,7 @@ import type {
   HelpNeeded,
   Priority,
   ProjectClass,
+  ProjectPhase,
   Rag,
   Size,
   WorkBy,
