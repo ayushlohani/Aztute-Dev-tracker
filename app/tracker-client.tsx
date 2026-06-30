@@ -23,7 +23,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ACTION_STATUSES,
   HELP_NEEDED,
@@ -114,6 +114,7 @@ function classNames(...values: Array<string | false | undefined>) {
 
 async function sendRequest(path: string, init?: RequestInit) {
   const response = await fetch(path, {
+    cache: "no-store",
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
   });
@@ -146,6 +147,10 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
+
+  useEffect(() => {
+    void run("refresh", () => sendRequest("/api/projects"), "Projects refreshed.");
+  }, []);
 
   const enriched = useMemo(() => projects.map(enrichProject), [projects]);
   const clients = useMemo(
