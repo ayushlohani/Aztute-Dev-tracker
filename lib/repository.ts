@@ -64,18 +64,25 @@ async function getCollection(): Promise<Collection<StoredProject> | null> {
 async function seedMongoIfEmpty(collection: Collection<StoredProject>) {
   const count = await collection.estimatedDocumentCount();
   if (count > 0) return;
-  const timestamp = new Date().toISOString();
-  await collection.insertMany(
-    cloneProjects(seedProjects).map((project) => {
-      const normalized = normalizeProject(project);
-      return {
-        ...normalized,
-        _id: normalized.id,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-    }),
-  );
+
+  const docs = cloneProjects(seedProjects).map((project) => {
+    const normalized = normalizeProject(project);
+    const timestamp = new Date().toISOString();
+
+    return {
+      ...normalized,
+      _id: normalized.id,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+  });
+
+  if (docs.length === 0) {
+    console.warn("seedProjects is empty. Skipping MongoDB seeding.");
+    return;
+  }
+
+  await collection.insertMany(docs);
 }
 
 function stripMongoFields(project: StoredProject): Project {

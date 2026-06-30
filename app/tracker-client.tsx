@@ -544,16 +544,17 @@ export default function TrackerClient({ initialData }: { initialData: TrackerPay
               <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
                 <Import size={16} /> Import
               </button>
-              <button
+              {/* <button
                 className="btn-danger"
                 disabled={Boolean(busy)}
+                hidden={true}
                 onClick={() =>
                   window.confirm("Reset all projects to seed data?") &&
                   run("reset", () => sendRequest("/api/projects/reset", { method: "POST" }), "Seed data restored.")
                 }
               >
                 <RefreshCcw size={16} /> Reset
-              </button>
+              </button> */}
               <input
                 ref={fileInputRef}
                 className="hidden"
